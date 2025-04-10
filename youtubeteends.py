@@ -65,8 +65,9 @@ hashtag_list = [tag for desc in descriptions + titles for tag in extract_hashtag
 # ---------- Display Trending Videos ----------
 st.subheader("🔥 Trending Video Titles")
 for title, channel in zip(titles, channels):
-    st.markdown(f"**{title}**  
-    `by {channel}`")
+   st.markdown(f"""**{title}**  
+`by {channel}`""")
+
 
 # ---------- Hashtags ----------
 st.subheader("🏷 Trending Hashtags")
