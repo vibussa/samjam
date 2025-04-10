@@ -36,24 +36,16 @@ def extract_keywords(titles):
     filtered_words = [word for word in words if word not in stopwords and len(word) > 2]
     return Counter(filtered_words).most_common(20)
 
-# ---------- GENERATE VIRAL TITLES FROM REAL HOOKS ----------
+# ---------- EXTRACT REAL HOOKS FROM TRENDING TITLES ----------
 def extract_real_hooks(titles):
-    hook_patterns = [
-        r"(wait till the end[!.]*)",
-        r"(this shocked.*?)(?:[.!]|$)",
-        r"(you won.?t believe.*?)",
-        r"(caught on camera.*?)",
-        r"(nobody expected.*?)",
-        r"(this went viral.*?)",
-        r"(when this happened.*?)"
-    ]
-    matches = []
+    hook_candidates = []
     for title in titles:
-        for pattern in hook_patterns:
-            found = re.findall(pattern, title, re.IGNORECASE)
-            matches.extend(found)
-    return list(set([m.strip() for m in matches if len(m) > 5]))[:7]  # Dedup & limit
+        parts = re.split(r"[|:;\-\n]", title)
+        hook_candidates.extend([part.strip() for part in parts if 5 < len(part.strip()) < 70])
+    # Return most common phrases that seem like attention-grabbers
+    return list(dict(Counter(hook_candidates).most_common(10)).keys())
 
+# ---------- GENERATE VIRAL TITLES ----------
 def generate_viral_title(base_title, real_hooks):
     return [f"{hook} | {base_title}" for hook in real_hooks]
 
