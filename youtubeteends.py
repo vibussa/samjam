@@ -36,18 +36,26 @@ def extract_keywords(titles):
     filtered_words = [word for word in words if word not in stopwords and len(word) > 2]
     return Counter(filtered_words).most_common(20)
 
-# ---------- GENERATE VIRAL TITLES ----------
-def generate_viral_title(base_title):
-    hooks = [
-        "This shocked everyone...",
-        "Wait till the end 😳",
-        "Nobody expected THIS",
-        "Caught on camera!",
-        "This went viral for a reason...",
-        "You won’t believe what happened next 😱",
-        "When this happened... 🔥",
+# ---------- GENERATE VIRAL TITLES FROM REAL HOOKS ----------
+def extract_real_hooks(titles):
+    hook_patterns = [
+        r"(wait till the end[!.]*)",
+        r"(this shocked.*?)(?:[.!]|$)",
+        r"(you won.?t believe.*?)",
+        r"(caught on camera.*?)",
+        r"(nobody expected.*?)",
+        r"(this went viral.*?)",
+        r"(when this happened.*?)"
     ]
-    return [f"{hook} | {base_title}" for hook in hooks]
+    matches = []
+    for title in titles:
+        for pattern in hook_patterns:
+            found = re.findall(pattern, title, re.IGNORECASE)
+            matches.extend(found)
+    return list(set([m.strip() for m in matches if len(m) > 5]))[:7]  # Dedup & limit
+
+def generate_viral_title(base_title, real_hooks):
+    return [f"{hook} | {base_title}" for hook in real_hooks]
 
 # ---------- GENERATE VIRAL HASHTAGS ----------
 def generate_viral_hashtags(keywords):
@@ -91,8 +99,10 @@ st.pyplot(fig)
 # ---------- Viral Title Generator ----------
 st.subheader("✨ Viral Title Generator")
 user_title = st.text_input("Enter your base title or idea:")
-if user_title:
-    suggestions = generate_viral_title(user_title)
+real_hooks = extract_real_hooks(titles)
+if user_title and real_hooks:
+    suggestions = generate_viral_title(user_title, real_hooks)
+    st.markdown("**Trending Hook-based Titles:**")
     for s in suggestions:
         st.markdown(f"- {s}")
 
