@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 # ---------- CONFIG ----------
 API_KEY = "AIzaSyAw5XhJLxvtZhkK-r24NI9AtdA3FHRdMlg"
-REGION_CODE = "US"
+REGION_CODE = "IN"
 MAX_RESULTS = 25
 
 # ---------- YOUTUBE API SETUP ----------
@@ -49,6 +49,12 @@ def generate_viral_title(base_title):
     ]
     return [f"{hook} | {base_title}" for hook in hooks]
 
+# ---------- GENERATE VIRAL HASHTAGS ----------
+def generate_viral_hashtags(keywords):
+    base_tags = ["#shorts", "#trending", "#viral"]
+    dynamic_tags = [f"#{kw[0]}" for kw in keywords[:5]]
+    return base_tags + dynamic_tags
+
 # ---------- STREAMLIT UI ----------
 st.set_page_config(page_title="YouTube Viral Trends Dashboard", layout="wide")
 st.title("📈 YouTube Viral Trend Dashboard")
@@ -65,9 +71,8 @@ hashtag_list = [tag for desc in descriptions + titles for tag in extract_hashtag
 # ---------- Display Trending Videos ----------
 st.subheader("🔥 Trending Video Titles")
 for title, channel in zip(titles, channels):
-   st.markdown(f"""**{title}**  
+    st.markdown(f"""**{title}**  
 `by {channel}`""")
-
 
 # ---------- Hashtags ----------
 st.subheader("🏷 Trending Hashtags")
@@ -90,3 +95,10 @@ if user_title:
     suggestions = generate_viral_title(user_title)
     for s in suggestions:
         st.markdown(f"- {s}")
+
+# ---------- Viral Hashtag Booster ----------
+st.subheader("🚀 Viral Hashtag Booster")
+if user_title:
+    boosted_tags = generate_viral_hashtags(keywords)
+    st.markdown("**Suggested Hashtags:**")
+    st.code(" ".join(boosted_tags))
