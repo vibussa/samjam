@@ -8,12 +8,15 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import pytz
 import time
+import os
+import json
 
 # ---------- CONFIG ----------
 API_KEY = "AIzaSyAw5XhJLxvtZhkK-r24NI9AtdA3FHRdMlg"
 REGION_CODE = "IN"
 MAX_RESULTS = 25
 REFRESH_INTERVAL = 3600  # seconds (1 hour)
+HISTORY_FILE = "upload_history.json"
 
 # ---------- YOUTUBE API SETUP ----------
 youtube = build('youtube', 'v3', developerKey=API_KEY)
@@ -61,7 +64,18 @@ def generate_viral_hashtags(keywords):
     dynamic_tags = [f"#{kw[0]}" for kw in keywords[:5]]
     return base_tags + dynamic_tags
 
-# ---------- BEST TIME TO POST (REAL DATA) ----------
+# ---------- SAVE UPLOAD TIMES ----------
+def save_upload_times(upload_hours):
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r") as f:
+            history = json.load(f)
+    else:
+        history = []
+    history.extend(upload_hours)
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history, f)
+
+# ---------- BEST TIME TO POST (REAL DATA + HISTORICAL) ----------
 def suggest_best_time(videos):
     india_timezone = pytz.timezone('Asia/Kolkata')
     upload_hours = []
@@ -75,16 +89,25 @@ def suggest_best_time(videos):
         st.warning("Couldn't fetch upload times from videos.")
         return
 
-    hour_counts = Counter(upload_hours)
+    save_upload_times(upload_hours)
+
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r") as f:
+            all_upload_hours = json.load(f)
+    else:
+        all_upload_hours = upload_hours
+
+    combined_hours = all_upload_hours + upload_hours
+    hour_counts = Counter(combined_hours)
     top_hours = hour_counts.most_common(4)
 
-    st.markdown("### 🕒 Best Times to Post Based on Today's Trending")
+    st.markdown("### 🕒 Best Times to Post Based on Real-Time + History")
     for hour, count in top_hours:
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
-        st.markdown(f"- **{posting_time}** (seen {count} trending uploads)")
+        st.markdown(f"- **{posting_time}** (seen {count} uploads)")
 
     st.subheader("📊 Upload Time Heatmap")
-    hours_series = pd.Series(upload_hours)
+    hours_series = pd.Series(combined_hours)
     hist = hours_series.value_counts().sort_index()
     fig, ax = plt.subplots()
     hist.plot(kind='bar', ax=ax)
@@ -171,11 +194,10 @@ if user_title:
     st.code(" ".join(boosted_tags))
 
 # ---------- Best Time to Post ----------
-st.subheader("🕒 Best Time to Post Today")
+st.subheader("🕒 Best Time to Post Based on Real-Time + History")
 suggest_best_time(videos)
 
 # ---------- Content Suggestion ----------
 st.subheader("🎯 Today's Suggested Content Type")
 content_type = suggest_content_type_real(keywords)
 st.success(f"Recommended: **{content_type}**")
-
