@@ -115,6 +115,25 @@ def suggest_best_time(videos):
     ax.set_ylabel('Number of Trending Uploads')
     st.pyplot(fig)
 
+# ---------- REAL-TIME POST ALERT SYSTEM ----------
+def real_time_post_alert():
+    india_timezone = pytz.timezone('Asia/Kolkata')
+    current_hour = datetime.now(india_timezone).hour
+
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r") as f:
+            all_upload_hours = json.load(f)
+    else:
+        return
+
+    hour_counts = Counter(all_upload_hours)
+    top_hours = [hour for hour, _ in hour_counts.most_common(4)]
+
+    if current_hour in top_hours:
+        st.balloons()
+        st.success("🚀 It's a Hot Trending Hour Right Now! Post your Short!")
+        st.audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg", format="audio/ogg")
+
 # ---------- REAL-TIME CONTENT TYPE SUGGESTION ----------
 def suggest_content_type_real(keywords):
     categories = {
@@ -196,6 +215,9 @@ if user_title:
 # ---------- Best Time to Post ----------
 st.subheader("🕒 Best Time to Post Based on Real-Time + History")
 suggest_best_time(videos)
+
+# ---------- Real-Time Posting Alert ----------
+real_time_post_alert()
 
 # ---------- Content Suggestion ----------
 st.subheader("🎯 Today's Suggested Content Type")
