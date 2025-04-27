@@ -42,6 +42,7 @@ def get_trending_songs():
         q="music"
     )
     response = request.execute()
+    st.write("Trending Songs Data:", response)  # Debugging: Print fetched data
     return response['items']
 
 # ---------- EXTRACT HASHTAGS FROM TITLES AND DESCRIPTIONS ----------
@@ -125,7 +126,7 @@ def suggest_best_time(videos, mode='24h'):
     hour_counts = Counter(combined_hours)
     top_hours = hour_counts.most_common(4)
 
-    st.markdown("### 🕒 Best Times to Post Today")
+    st.markdown("### 🕒 Best Times to Post")
     for hour, count in top_hours:
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
         st.markdown(f"- **{posting_time}** (seen {count} uploads)")
@@ -214,13 +215,15 @@ with col3:
     ax.axis("off")
     st.pyplot(fig)
 
-# ---------- Trending Songs ----------
-st.subheader("🎶 Trending Songs Today")
-songs = get_trending_songs()
-for song in songs:
+# ---------- Trending Songs Section ----------
+st.divider()
+st.subheader("🎵 Trending Songs")
+trending_songs = get_trending_songs()
+for song in trending_songs:
     song_title = song['snippet']['title']
     song_channel = song['snippet']['channelTitle']
-    st.markdown(f"**{song_title}**<br><sub>by {song_channel}</sub>", unsafe_allow_html=True)
+    song_url = f"https://www.youtube.com/watch?v={song['id']['videoId']}"
+    st.markdown(f"**{song_title}**<br><sub>by {song_channel} - [Watch Here]({song_url})</sub>", unsafe_allow_html=True)
 
 # ---------- Viral Title Generator ----------
 st.divider()
@@ -243,7 +246,7 @@ with col5:
         st.markdown("**Suggested Hashtags:**")
         st.code(" ".join(boosted_tags))
 
-# ---------- Best Time to Post Today ----------
+# ---------- Best Time to Post ----------
 st.divider()
 st.subheader("🕒 Best Time to Post Today")
 suggest_best_time(videos, mode='24h')
