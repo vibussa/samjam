@@ -32,6 +32,18 @@ def get_trending_videos():
     response = request.execute()
     return response['items']
 
+# ---------- FETCH TRENDING SONGS ----------
+def get_trending_songs():
+    request = youtube.search().list(
+        part="snippet",
+        type="video",
+        regionCode=REGION_CODE,
+        maxResults=10,
+        q="music"
+    )
+    response = request.execute()
+    return response['items']
+
 # ---------- EXTRACT HASHTAGS FROM TITLES AND DESCRIPTIONS ----------
 def extract_hashtags_real(videos):
     hashtags = []
@@ -201,6 +213,14 @@ with col3:
     ax.imshow(wordcloud, interpolation='bilinear')
     ax.axis("off")
     st.pyplot(fig)
+
+# ---------- Trending Songs ----------
+st.subheader("🎶 Trending Songs Today")
+songs = get_trending_songs()
+for song in songs:
+    song_title = song['snippet']['title']
+    song_channel = song['snippet']['channelTitle']
+    st.markdown(f"**{song_title}**<br><sub>by {song_channel}</sub>", unsafe_allow_html=True)
 
 # ---------- Viral Title Generator ----------
 st.divider()
