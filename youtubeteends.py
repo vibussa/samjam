@@ -226,4 +226,46 @@ with col2:
     hashtag_counts = Counter(hashtags_real_time)
     st.bar_chart(pd.DataFrame(hashtag_counts.most_common(10), columns=['Hashtag', 'Count']).set_index('Hashtag'))
 
-#
+# ---------- Keywords Wordcloud ----------
+with col3:
+    st.subheader("🧠 Common Keywords")
+    keywords = extract_keywords(titles)
+    fig, ax = plt.subplots(figsize=(5,3))
+    wordcloud = WordCloud(width=600, height=300, background_color='white').generate_from_frequencies(dict(keywords))
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis("off")
+    st.pyplot(fig)
+
+# ---------- Viral Title Generator ----------
+st.divider()
+col4, col5 = st.columns(2)
+
+with col4:
+    st.subheader("✨ Viral Title Generator")
+    user_title = st.text_input("Enter your base title or idea:")
+    real_hooks = extract_real_hooks(titles)
+    if user_title and real_hooks:
+        suggestions = generate_viral_title(user_title, real_hooks)
+        st.markdown("**Trending Hook-based Titles:**")
+        for s in suggestions:
+            st.markdown(f"- {s}")
+
+with col5:
+    st.subheader("🚀 Viral Hashtag Booster")
+    if user_title:
+        boosted_tags = generate_viral_hashtags(keywords)
+        st.markdown("**Suggested Hashtags:**")
+        st.code(" ".join(boosted_tags))
+
+# ---------- Best Time to Post ----------
+st.divider()
+st.subheader("🕒 Best Time to Post Today")
+hottest_hours_today(videos)
+
+# ---------- Real-Time Posting Alert ----------
+real_time_post_alert()
+
+# ---------- Content Suggestion ----------
+st.subheader("🎯 Today's Suggested Content Type")
+content_type = suggest_content_type_real(keywords)
+st.success(f"Recommended: **{content_type}**")
