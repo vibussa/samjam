@@ -15,28 +15,39 @@ import json
 API_KEY = "AIzaSyAw5XhJLxvtZhkK-r24NI9AtdA3FHRdMlg"
 REGION_CODE = "IN"
 MAX_RESULTS = 25
-REFRESH_INTERVAL = 3600
+REFRESH_INTERVAL = 3600  # seconds (1 hour)
 HISTORY_FILE = "upload_history.json"
 
 # ---------- YOUTUBE API SETUP ----------
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
-# ---------- FUNCTIONS ----------
-
+# ---------- FETCH TRENDING VIDEOS ----------
 def get_trending_videos():
-    request = youtube.videos().list(part="snippet,statistics", chart="mostPopular", regionCode=REGION_CODE, maxResults=MAX_RESULTS)
+    request = youtube.videos().list(
+        part="snippet,statistics",
+        chart="mostPopular",
+        regionCode=REGION_CODE,
+        maxResults=MAX_RESULTS
+    )
     response = request.execute()
     return response['items']
 
-def extract_hashtags(text):
-    return re.findall(r"#\w+", text)
+# ---------- EXTRACT HASHTAGS FROM TITLES AND DESCRIPTIONS ----------
+def extract_hashtags_real(videos):
+    hashtags = []
+    for v in videos:
+        text = v['snippet'].get('title', '') + ' ' + v['snippet'].get('description', '')
+        hashtags.extend(re.findall(r"#\w+", text))
+    return hashtags
 
+# ---------- EXTRACT KEYWORDS ----------
 def extract_keywords(titles):
     words = re.findall(r"\b\w+\b", " ".join(titles).lower())
     stopwords = set(pd.read_csv("https://raw.githubusercontent.com/stopwords-iso/stopwords-en/master/stopwords-en.txt", header=None)[0])
     filtered_words = [word for word in words if word not in stopwords and len(word) > 2]
     return Counter(filtered_words).most_common(20)
 
+# ---------- EXTRACT REAL HOOKS FROM TITLES ----------
 def extract_real_hooks(titles):
     matches = []
     for title in titles:
@@ -47,14 +58,17 @@ def extract_real_hooks(titles):
                 matches.append(cleaned)
     return list(set(matches))[:7]
 
+# ---------- GENERATE VIRAL TITLES ----------
 def generate_viral_title(base_title, real_hooks):
     return [f"{hook} | {base_title}" for hook in real_hooks]
 
+# ---------- GENERATE VIRAL HASHTAGS ----------
 def generate_viral_hashtags(keywords):
     base_tags = ["#shorts", "#trending", "#viral"]
     dynamic_tags = [f"#{kw[0]}" for kw in keywords[:5]]
     return base_tags + dynamic_tags
 
+# ---------- SAVE UPLOAD TIMES ----------
 def save_upload_times(upload_hours):
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r") as f:
@@ -65,6 +79,7 @@ def save_upload_times(upload_hours):
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f)
 
+# ---------- BEST TIME TO POST (REAL DATA + HISTORICAL) ----------
 def suggest_best_time(videos):
     india_timezone = pytz.timezone('Asia/Kolkata')
     upload_hours = []
@@ -73,6 +88,10 @@ def suggest_best_time(videos):
         upload_time_utc = v['snippet']['publishedAt']
         upload_time = datetime.fromisoformat(upload_time_utc.replace('Z', '+00:00')).astimezone(india_timezone)
         upload_hours.append(upload_time.hour)
+
+    if not upload_hours:
+        st.warning("Couldn't fetch upload times from videos.")
+        return
 
     save_upload_times(upload_hours)
 
@@ -86,19 +105,12 @@ def suggest_best_time(videos):
     hour_counts = Counter(combined_hours)
     top_hours = hour_counts.most_common(4)
 
-    st.markdown("### 🕒 Best Times")
+    st.markdown("### 🕒 Best Times to Post Based on Real-Time + History")
     for hour, count in top_hours:
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
-        st.markdown(f"- **{posting_time}** ({count} uploads)")
+        st.markdown(f"- **{posting_time}** (seen {count} uploads)")
 
-    hours_series = pd.Series(combined_hours)
-    hist = hours_series.value_counts().sort_index()
-    fig, ax = plt.subplots(figsize=(4,2))
-    hist.plot(kind='bar', ax=ax)
-    ax.set_xlabel('Hour')
-    ax.set_ylabel('Uploads')
-    st.pyplot(fig)
-
+# ---------- REAL-TIME POST ALERT SYSTEM ----------
 def real_time_post_alert():
     india_timezone = pytz.timezone('Asia/Kolkata')
     current_hour = datetime.now(india_timezone).hour
@@ -114,15 +126,21 @@ def real_time_post_alert():
 
     if current_hour in top_hours:
         st.balloons()
-        st.success("🚀 It's a Hot Trending Hour! Post Now!")
+        st.success("🚀 It's a Hot Trending Hour Right Now! Post your Short!")
         st.audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg", format="audio/ogg")
 
+# ---------- REAL-TIME CONTENT TYPE SUGGESTION ----------
 def suggest_content_type_real(keywords):
     categories = {
-        'music': 'Music/Dance', 'song': 'Music/Dance',
-        'funny': 'Comedy', 'comedy': 'Comedy',
-        'vlog': 'Lifestyle Vlog', 'news': 'News/Commentary',
-        'challenge': 'Challenges', 'trend': 'Trending Challenge', 'game': 'Gaming'
+        'music': 'Music/Dance',
+        'song': 'Music/Dance',
+        'funny': 'Comedy',
+        'comedy': 'Comedy',
+        'vlog': 'Lifestyle Vlog',
+        'news': 'News/Commentary',
+        'challenge': 'Challenges',
+        'trend': 'Trending Challenge',
+        'game': 'Gaming'
     }
     scores = Counter()
     for word, _ in keywords:
@@ -136,8 +154,7 @@ def suggest_content_type_real(keywords):
 
 # ---------- STREAMLIT UI ----------
 st.set_page_config(page_title="YouTube Viral Trends Dashboard", layout="wide")
-
-st.title("📈 YouTube Viral Trends Dashboard")
+st.title("📈 YouTube Viral Trend Dashboard")
 
 if 'last_refresh' not in st.session_state or time.time() - st.session_state['last_refresh'] > REFRESH_INTERVAL:
     with st.spinner("Fetching trending videos..."):
@@ -151,47 +168,62 @@ else:
 titles = [v['snippet']['title'] for v in videos]
 descriptions = [v['snippet'].get('description', '') for v in videos]
 channels = [v['snippet']['channelTitle'] for v in videos]
-hashtag_list = [tag for desc in descriptions + titles for tag in extract_hashtags(desc)]
+hashtags_real_time = extract_hashtags_real(videos)
 
 col1, col2, col3 = st.columns(3)
 
+# ---------- Display Trending Videos ----------
 with col1:
-    st.markdown("### 🔥 Trending Titles")
-    for title, channel in zip(titles[:8], channels[:8]):
-        st.markdown(f"**{title}**  \\`by {channel}`")
+    st.subheader("🔥 Trending Video Titles")
+    for title, channel in zip(titles, channels):
+        st.markdown(f"**{title}**<br><sub>by {channel}</sub>", unsafe_allow_html=True)
 
-    st.markdown("### 🧠 Keywords")
+# ---------- Real-Time Hashtags ----------
+with col2:
+    st.subheader("🏷 Real-Time Trending Hashtags")
+    hashtag_counts = Counter(hashtags_real_time)
+    st.bar_chart(pd.DataFrame(hashtag_counts.most_common(10), columns=['Hashtag', 'Count']).set_index('Hashtag'))
+
+# ---------- Keywords Wordcloud ----------
+with col3:
+    st.subheader("🧠 Common Keywords")
     keywords = extract_keywords(titles)
-    fig, ax = plt.subplots(figsize=(3,2))
-    wordcloud = WordCloud(width=400, height=200, background_color='white').generate_from_frequencies(dict(keywords))
+    fig, ax = plt.subplots(figsize=(5,3))
+    wordcloud = WordCloud(width=600, height=300, background_color='white').generate_from_frequencies(dict(keywords))
     ax.imshow(wordcloud, interpolation='bilinear')
     ax.axis("off")
     st.pyplot(fig)
 
-with col2:
-    st.markdown("### 🏷 Hashtags")
-    hashtag_counts = Counter(hashtag_list)
-    st.bar_chart(pd.DataFrame(hashtag_counts.most_common(10), columns=['Hashtag', 'Count']).set_index('Hashtag'))
+# ---------- Viral Title Generator ----------
+st.divider()
+col4, col5 = st.columns(2)
 
-    st.markdown("### 🚀 Viral Hashtags")
+with col4:
+    st.subheader("✨ Viral Title Generator")
     user_title = st.text_input("Enter your base title or idea:")
-    if user_title:
-        boosted_tags = generate_viral_hashtags(keywords)
-        st.code(" ".join(boosted_tags))
-
-with col3:
-    st.markdown("### ✨ Viral Titles")
     real_hooks = extract_real_hooks(titles)
     if user_title and real_hooks:
         suggestions = generate_viral_title(user_title, real_hooks)
+        st.markdown("**Trending Hook-based Titles:**")
         for s in suggestions:
             st.markdown(f"- {s}")
 
-    st.markdown("### 🎯 Content Type")
-    content_type = suggest_content_type_real(keywords)
-    st.success(f"Recommended: **{content_type}**")
+with col5:
+    st.subheader("🚀 Viral Hashtag Booster")
+    if user_title:
+        boosted_tags = generate_viral_hashtags(keywords)
+        st.markdown("**Suggested Hashtags:**")
+        st.code(" ".join(boosted_tags))
 
-    st.markdown("### 🕒 Post Timing")
-    suggest_best_time(videos)
+# ---------- Best Time to Post ----------
+st.divider()
+st.subheader("🕒 Best Time to Post")
+suggest_best_time(videos)
 
+# ---------- Real-Time Posting Alert ----------
 real_time_post_alert()
+
+# ---------- Content Suggestion ----------
+st.subheader("🎯 Today's Suggested Content Type")
+content_type = suggest_content_type_real(keywords)
+st.success(f"Recommended: **{content_type}**")
