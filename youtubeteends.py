@@ -58,6 +58,12 @@ def extract_real_hooks(titles):
                 matches.append(cleaned)
     return list(set(matches))[:7]
 
+# ---------- DETECT TRENDING SONGS ----------
+def detect_trending_songs(titles):
+    song_keywords = ["official", "song", "music", "track", "album", "cover", "remix"]
+    trending_songs = [title for title in titles if any(kw in title.lower() for kw in song_keywords)]
+    return trending_songs[:10]
+
 # ---------- GENERATE VIRAL TITLES ----------
 def generate_viral_title(base_title, real_hooks):
     return [f"{hook} | {base_title}" for hook in real_hooks]
@@ -138,7 +144,7 @@ def real_time_post_alert():
         st.success("🚀 It's a Hot Trending Hour Right Now! Post your Short!")
         st.audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg", format="audio/ogg")
 
-# ---------- REAL-TIME CONTENT TYPE SUGGESTION ----------
+# ---------- Content Type Suggestion ----------
 def suggest_content_type_real(keywords):
     categories = {
         'music': 'Music/Dance',
@@ -219,20 +225,17 @@ with col2:
     hashtag_counts = Counter(hashtags_real_time)
     st.bar_chart(pd.DataFrame(hashtag_counts.most_common(10), columns=['Hashtag', 'Count']).set_index('Hashtag'))
 
-# ---------- Keywords Wordcloud ----------
+# ---------- Trending Songs Detector ----------
 with col3:
-    st.subheader("🧠 Common Keywords")
-    keywords = extract_keywords(titles)
-    fig, ax = plt.subplots(figsize=(5,3))
-    wordcloud = WordCloud(width=600, height=300, background_color='white').generate_from_frequencies(dict(keywords))
-    ax.imshow(wordcloud, interpolation='bilinear')
-    ax.axis("off")
-    st.pyplot(fig)
+    st.subheader("🎵 Trending Songs")
+    trending_songs = detect_trending_songs(titles)
+    for song in trending_songs:
+        st.markdown(f"- {song}")
 
-# ---------- Viral Title Generator ----------
 st.divider()
 col4, col5 = st.columns(2)
 
+# ---------- Viral Title Generator ----------
 with col4:
     st.subheader("✨ Viral Title Generator")
     user_title = st.text_input("Enter your base title or idea:")
@@ -243,6 +246,7 @@ with col4:
         for s in suggestions:
             st.markdown(f"- {s}")
 
+# ---------- Viral Hashtag Booster ----------
 with col5:
     st.subheader("🚀 Viral Hashtag Booster")
     if user_title:
