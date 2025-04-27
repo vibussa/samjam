@@ -42,7 +42,6 @@ def get_trending_songs():
         q="music"
     )
     response = request.execute()
-    st.write("Trending Songs Data:", response)  # Debugging: Print fetched data
     return response['items']
 
 # ---------- EXTRACT HASHTAGS FROM TITLES AND DESCRIPTIONS ----------
