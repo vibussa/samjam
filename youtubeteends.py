@@ -113,7 +113,7 @@ def suggest_best_time(videos, mode='24h'):
     hour_counts = Counter(combined_hours)
     top_hours = hour_counts.most_common(4)
 
-    st.markdown("### 🕒 Best Times to Post")
+    st.markdown("### 🕒 Best Times to Post Today")
     for hour, count in top_hours:
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
         st.markdown(f"- **{posting_time}** (seen {count} uploads)")
@@ -160,16 +160,6 @@ def suggest_content_type_real(keywords):
     else:
         return "Entertainment"
 
-# ---------- FETCH TRENDING SONGS (REAL-TIME) ----------
-def fetch_trending_songs():
-    trending_songs = [
-        {"song": "Raanjhan", "artist": "Sachet-Parampara, Parampara Tandon", "link": "https://open.spotify.com/track/2N0k5aCNGLouLAiZrCeyWw"},
-        {"song": "Jhol", "artist": "Maanu, Annural Khalid", "link": "https://open.spotify.com/track/37i9dQZEVXbLZ52XmnySJg"},
-        {"song": "Kevadyacha Paan Tu", "artist": "Ajay Gogavale, Aarya Ambekar", "link": "https://en.wikipedia.org/wiki/Kevadyacha_Paan_Tu"},
-        {"song": "Taambdi Chaamdi", "artist": "Kratex, Shreyas", "link": "https://en.wikipedia.org/wiki/Taambdi_Chaamdi"}
-    ]
-    return trending_songs
-
 # ---------- STREAMLIT UI ----------
 st.set_page_config(page_title="YouTube Viral Trends Dashboard", layout="wide")
 st.title("📈 YouTube Viral Trend Dashboard")
@@ -212,13 +202,6 @@ with col3:
     ax.axis("off")
     st.pyplot(fig)
 
-# ---------- Display Trending Songs ----------
-st.divider()
-st.subheader("🎶 Trending Songs Right Now")
-trending_songs = fetch_trending_songs()
-for song in trending_songs:
-    st.markdown(f"**{song['song']}** by {song['artist']} - [Listen Here]({song['link']})")
-
 # ---------- Viral Title Generator ----------
 st.divider()
 col4, col5 = st.columns(2)
@@ -240,10 +223,10 @@ with col5:
         st.markdown("**Suggested Hashtags:**")
         st.code(" ".join(boosted_tags))
 
-# ---------- Best Time to Post ----------
+# ---------- Best Time to Post Today ----------
 st.divider()
 st.subheader("🕒 Best Time to Post Today")
-hottest_hours_today(videos)
+suggest_best_time(videos, mode='24h')
 
 # ---------- Real-Time Posting Alert ----------
 real_time_post_alert()
