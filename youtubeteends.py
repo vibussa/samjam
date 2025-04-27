@@ -118,7 +118,7 @@ def suggest_best_time(videos, mode='24h'):
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
         st.markdown(f"- **{posting_time}** (seen {count} uploads)")
 
-# ---------- Hottest Hours for Today (Two Hours) ----------
+# ---------- Hottest Hours for Today (Top 4 with Percentages) ----------
 def hottest_hours_today(videos):
     india_timezone = pytz.timezone('Asia/Kolkata')
     upload_hours = []
@@ -136,19 +136,21 @@ def hottest_hours_today(videos):
         return
 
     hour_counts = Counter(upload_hours)
-    top_two_hours = hour_counts.most_common(2)  # Get the two hottest hours
-    st.markdown("### 🔥 Top Two Hottest Hours to Post Today")
-    
-    for hottest_hour, count in top_two_hours:
+    total_uploads = sum(hour_counts.values())
+    top_four_hours = hour_counts.most_common(4)  # Get the top 4 hottest hours
+
+    st.markdown("### 🔥 Top Four Hottest Hours to Post Today with Percentages")
+    for hottest_hour, count in top_four_hours:
         hottest_time = f"{hottest_hour % 12 or 12}{'AM' if hottest_hour < 12 else 'PM'}"
-        st.markdown(f"- **{hottest_time}** (seen {count} uploads)")
+        percentage = (count / total_uploads) * 100
+        st.markdown(f"- **{hottest_time}** (seen {count} uploads, {percentage:.2f}%)")
     
     # Display bar chart for top hours
     hour_data = pd.DataFrame(hour_counts.items(), columns=["Hour", "Count"]).sort_values(by="Hour")
     st.bar_chart(hour_data.set_index("Hour"))
     
     # Show the trendiest hours more clearly
-    for hottest_hour, _ in top_two_hours:
+    for hottest_hour, _ in top_four_hours:
         hottest_time = f"{hottest_hour % 12 or 12}{'AM' if hottest_hour < 12 else 'PM'}"
         st.markdown(f"🚀 **{hottest_time}** is the best time to target for maximum visibility!")
 
