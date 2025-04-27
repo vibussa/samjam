@@ -37,6 +37,17 @@ def get_trending_videos():
         st.error("❌ Failed to fetch trending videos. Please check your API key, quota limits, or region settings.")
         return []
 
+# ---------- MAIN APP ----------
+st.set_page_config(page_title="YouTube Trending Dashboard", layout="wide")
+st.title("🔥 YouTube Trending Dashboard (India)")
+
+with st.spinner('Fetching real-time trending videos...'):
+    videos = get_trending_videos()
+
+if not videos:
+    st.warning("⚡ No trending videos available right now. Please refresh after some time!")
+    st.stop()
+
 # ---------- EXTRACT HASHTAGS FROM TITLES AND DESCRIPTIONS ----------
 # (Rest of your code remains unchanged)
 
