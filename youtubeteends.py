@@ -5,7 +5,7 @@ from collections import Counter
 from googleapiclient.discovery import build
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import time
 import os
@@ -14,7 +14,7 @@ import json
 # ---------- CONFIG ----------
 API_KEY = "AIzaSyAw5XhJLxvtZhkK-r24NI9AtdA3FHRdMlg"
 REGION_CODE = "IN"
-MAX_RESULTS = 25
+MAX_RESULTS = 50
 REFRESH_INTERVAL = 3600  # seconds (1 hour)
 HISTORY_FILE = "upload_history.json"
 
@@ -80,17 +80,25 @@ def save_upload_times(upload_hours):
         json.dump(history, f)
 
 # ---------- BEST TIME TO POST (REAL DATA + HISTORICAL) ----------
-def suggest_best_time(videos):
+def suggest_best_time(videos, mode='24h'):
     india_timezone = pytz.timezone('Asia/Kolkata')
     upload_hours = []
+
+    now = datetime.now(india_timezone)
 
     for v in videos:
         upload_time_utc = v['snippet']['publishedAt']
         upload_time = datetime.fromisoformat(upload_time_utc.replace('Z', '+00:00')).astimezone(india_timezone)
-        upload_hours.append(upload_time.hour)
+
+        if mode == '24h':
+            if (now - upload_time).total_seconds() <= 86400:
+                upload_hours.append(upload_time.hour)
+        elif mode == '7d':
+            if (now - upload_time).total_seconds() <= 604800:
+                upload_hours.append(upload_time.hour)
 
     if not upload_hours:
-        st.warning("Couldn't fetch upload times from videos.")
+        st.warning(f"No uploads found in the selected period ({mode}).")
         return
 
     save_upload_times(upload_hours)
@@ -105,7 +113,7 @@ def suggest_best_time(videos):
     hour_counts = Counter(combined_hours)
     top_hours = hour_counts.most_common(4)
 
-    st.markdown("### 🕒 Best Times to Post Based on Real-Time + History")
+    st.markdown("### 🕒 Best Times to Post")
     for hour, count in top_hours:
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
         st.markdown(f"- **{posting_time}** (seen {count} uploads)")
@@ -218,7 +226,11 @@ with col5:
 # ---------- Best Time to Post ----------
 st.divider()
 st.subheader("🕒 Best Time to Post")
-suggest_best_time(videos)
+mode = st.radio("Select Analysis Window:", ["24 Hours", "7 Days"], horizontal=True)
+if mode == "24 Hours":
+    suggest_best_time(videos, mode='24h')
+else:
+    suggest_best_time(videos, mode='7d')
 
 # ---------- Real-Time Posting Alert ----------
 real_time_post_alert()
