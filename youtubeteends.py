@@ -32,18 +32,6 @@ def get_trending_videos():
     response = request.execute()
     return response['items']
 
-# ---------- FETCH TRENDING SONGS ----------
-def get_trending_songs():
-    request = youtube.search().list(
-        part="snippet",
-        type="video",
-        regionCode=REGION_CODE,
-        maxResults=10,
-        q="music"
-    )
-    response = request.execute()
-    return response['items']
-
 # ---------- EXTRACT HASHTAGS FROM TITLES AND DESCRIPTIONS ----------
 def extract_hashtags_real(videos):
     hashtags = []
@@ -128,7 +116,8 @@ def suggest_best_time(videos, mode='24h'):
     st.markdown("### 🕒 Best Times to Post")
     for hour, count in top_hours:
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
-        st.markdown(f"- **{posting_time}** (seen {count} uploads)")
+        percentage = round((count / sum(hour_counts.values())) * 100, 2)
+        st.markdown(f"- **{posting_time}** (Popularity: {percentage}%)")
 
 # ---------- REAL-TIME POST ALERT SYSTEM ----------
 def real_time_post_alert():
@@ -172,6 +161,32 @@ def suggest_content_type_real(keywords):
     else:
         return "Entertainment"
 
+# ---------- AUDIENCE RETENTION BOOSTER ----------
+def audience_retention_tips(titles, keywords):
+    st.subheader("🔗 High Audience Retention Blueprint")
+
+    real_hooks = extract_real_hooks(titles)
+
+    st.markdown("""
+    **🛠 Recommended 30-60 Second Video Structure:**
+    - **0-3 sec:** Strong Hook (Shocking fact / Bold statement / Question)
+    - **3-15 sec:** Quick Story / Main Action
+    - **15-45 sec:** Keep surprising (fast cuts, twists, curiosity loops)
+    - **45-60 sec:** Reward (funny ending, emotional payoff, satisfying result)
+    """)
+
+    if real_hooks:
+        st.markdown("**🔥 Use One of These as Your First 3 Seconds:**")
+        for hook in real_hooks[:5]:
+            st.markdown(f"- {hook}")
+
+    trending_topics = [word for word, count in keywords[:5]]
+    st.markdown("**🎯 Trending Topics to Build Your Story Around:**")
+    for topic in trending_topics:
+        st.markdown(f"- {topic.capitalize()}")
+
+    st.info("💡 Tip: End with an unexpected twist, reward or emotional punch to make people watch till the last second!")
+
 # ---------- STREAMLIT UI ----------
 st.set_page_config(page_title="YouTube Viral Trends Dashboard", layout="wide")
 st.title("📈 YouTube Viral Trend Dashboard")
@@ -214,16 +229,6 @@ with col3:
     ax.axis("off")
     st.pyplot(fig)
 
-# ---------- Trending Songs Section ----------
-st.divider()
-st.subheader("🎵 Trending Songs")
-trending_songs = get_trending_songs()
-for song in trending_songs:
-    song_title = song['snippet']['title']
-    song_channel = song['snippet']['channelTitle']
-    song_url = f"https://www.youtube.com/watch?v={song['id']['videoId']}"
-    st.markdown(f"**{song_title}**<br><sub>by {song_channel} - [Watch Here]({song_url})</sub>", unsafe_allow_html=True)
-
 # ---------- Viral Title Generator ----------
 st.divider()
 col4, col5 = st.columns(2)
@@ -247,8 +252,12 @@ with col5:
 
 # ---------- Best Time to Post ----------
 st.divider()
-st.subheader("🕒 Best Time to Post Today")
-suggest_best_time(videos, mode='24h')
+st.subheader("🕒 Best Time to Post")
+mode = st.radio("Select Analysis Window:", ["24 Hours", "7 Days"], horizontal=True)
+if mode == "24 Hours":
+    suggest_best_time(videos, mode='24h')
+else:
+    suggest_best_time(videos, mode='7d')
 
 # ---------- Real-Time Posting Alert ----------
 real_time_post_alert()
@@ -257,3 +266,6 @@ real_time_post_alert()
 st.subheader("🎯 Today's Suggested Content Type")
 content_type = suggest_content_type_real(keywords)
 st.success(f"Recommended: **{content_type}**")
+
+# ---------- Audience Retention Booster ----------
+audience_retention_tips(titles, keywords)
