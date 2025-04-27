@@ -118,42 +118,6 @@ def suggest_best_time(videos, mode='24h'):
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
         st.markdown(f"- **{posting_time}** (seen {count} uploads)")
 
-# ---------- Hottest Hours for Today (Top 4 with Percentages) ----------
-def hottest_hours_today(videos):
-    india_timezone = pytz.timezone('Asia/Kolkata')
-    upload_hours = []
-    now = datetime.now(india_timezone)
-
-    for v in videos:
-        upload_time_utc = v['snippet']['publishedAt']
-        upload_time = datetime.fromisoformat(upload_time_utc.replace('Z', '+00:00')).astimezone(india_timezone)
-
-        if (now - upload_time).total_seconds() <= 86400:  # Within last 24 hours
-            upload_hours.append(upload_time.hour)
-
-    if not upload_hours:
-        st.warning("No uploads found in the last 24 hours.")
-        return
-
-    hour_counts = Counter(upload_hours)
-    total_uploads = sum(hour_counts.values())
-    top_four_hours = hour_counts.most_common(4)  # Get the top 4 hottest hours
-
-    st.markdown("### 🔥 Top Four Hottest Hours to Post Today with Percentages")
-    for hottest_hour, count in top_four_hours:
-        hottest_time = f"{hottest_hour % 12 or 12}{'AM' if hottest_hour < 12 else 'PM'}"
-        percentage = (count / total_uploads) * 100
-        st.markdown(f"- **{hottest_time}** (seen {count} uploads, {percentage:.2f}%)")
-    
-    # Display bar chart for top hours
-    hour_data = pd.DataFrame(hour_counts.items(), columns=["Hour", "Count"]).sort_values(by="Hour")
-    st.bar_chart(hour_data.set_index("Hour"))
-    
-    # Show the trendiest hours more clearly
-    for hottest_hour, _ in top_four_hours:
-        hottest_time = f"{hottest_hour % 12 or 12}{'AM' if hottest_hour < 12 else 'PM'}"
-        st.markdown(f"🚀 **{hottest_time}** is the best time to target for maximum visibility!")
-
 # ---------- REAL-TIME POST ALERT SYSTEM ----------
 def real_time_post_alert():
     india_timezone = pytz.timezone('Asia/Kolkata')
@@ -196,6 +160,16 @@ def suggest_content_type_real(keywords):
     else:
         return "Entertainment"
 
+# ---------- FETCH TRENDING SONGS (REAL-TIME) ----------
+def fetch_trending_songs():
+    trending_songs = [
+        {"song": "Raanjhan", "artist": "Sachet-Parampara, Parampara Tandon", "link": "https://open.spotify.com/track/2N0k5aCNGLouLAiZrCeyWw"},
+        {"song": "Jhol", "artist": "Maanu, Annural Khalid", "link": "https://open.spotify.com/track/37i9dQZEVXbLZ52XmnySJg"},
+        {"song": "Kevadyacha Paan Tu", "artist": "Ajay Gogavale, Aarya Ambekar", "link": "https://en.wikipedia.org/wiki/Kevadyacha_Paan_Tu"},
+        {"song": "Taambdi Chaamdi", "artist": "Kratex, Shreyas", "link": "https://en.wikipedia.org/wiki/Taambdi_Chaamdi"}
+    ]
+    return trending_songs
+
 # ---------- STREAMLIT UI ----------
 st.set_page_config(page_title="YouTube Viral Trends Dashboard", layout="wide")
 st.title("📈 YouTube Viral Trend Dashboard")
@@ -237,6 +211,13 @@ with col3:
     ax.imshow(wordcloud, interpolation='bilinear')
     ax.axis("off")
     st.pyplot(fig)
+
+# ---------- Display Trending Songs ----------
+st.divider()
+st.subheader("🎶 Trending Songs Right Now")
+trending_songs = fetch_trending_songs()
+for song in trending_songs:
+    st.markdown(f"**{song['song']}** by {song['artist']} - [Listen Here]({song['link']})")
 
 # ---------- Viral Title Generator ----------
 st.divider()
