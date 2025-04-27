@@ -118,8 +118,8 @@ def suggest_best_time(videos, mode='24h'):
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
         st.markdown(f"- **{posting_time}** (seen {count} uploads)")
 
-# ---------- Hottest Hour for Today ----------
-def hottest_hour_today(videos):
+# ---------- Hottest Hours for Today (Two Hours) ----------
+def hottest_hours_today(videos):
     india_timezone = pytz.timezone('Asia/Kolkata')
     upload_hours = []
     now = datetime.now(india_timezone)
@@ -136,18 +136,21 @@ def hottest_hour_today(videos):
         return
 
     hour_counts = Counter(upload_hours)
-    hottest_hour, count = hour_counts.most_common(1)[0]  # Get the hottest hour
-    hottest_time = f"{hottest_hour % 12 or 12}{'AM' if hottest_hour < 12 else 'PM'}"
+    top_two_hours = hour_counts.most_common(2)  # Get the two hottest hours
+    st.markdown("### 🔥 Top Two Hottest Hours to Post Today")
     
-    # Show hottest hour and the bar chart
-    st.markdown(f"### 🔥 Hottest Hour to Post Today: **{hottest_time}**")
+    for hottest_hour, count in top_two_hours:
+        hottest_time = f"{hottest_hour % 12 or 12}{'AM' if hottest_hour < 12 else 'PM'}"
+        st.markdown(f"- **{hottest_time}** (seen {count} uploads)")
     
-    # Bar chart of trending hours
+    # Display bar chart for top hours
     hour_data = pd.DataFrame(hour_counts.items(), columns=["Hour", "Count"]).sort_values(by="Hour")
     st.bar_chart(hour_data.set_index("Hour"))
     
-    # Show the trendiest hour more clearly
-    st.markdown(f"🚀 **{hottest_time}** is the time to target for maximum visibility!")
+    # Show the trendiest hours more clearly
+    for hottest_hour, _ in top_two_hours:
+        hottest_time = f"{hottest_hour % 12 or 12}{'AM' if hottest_hour < 12 else 'PM'}"
+        st.markdown(f"🚀 **{hottest_time}** is the best time to target for maximum visibility!")
 
 # ---------- REAL-TIME POST ALERT SYSTEM ----------
 def real_time_post_alert():
@@ -223,46 +226,4 @@ with col2:
     hashtag_counts = Counter(hashtags_real_time)
     st.bar_chart(pd.DataFrame(hashtag_counts.most_common(10), columns=['Hashtag', 'Count']).set_index('Hashtag'))
 
-# ---------- Keywords Wordcloud ----------
-with col3:
-    st.subheader("🧠 Common Keywords")
-    keywords = extract_keywords(titles)
-    fig, ax = plt.subplots(figsize=(5,3))
-    wordcloud = WordCloud(width=600, height=300, background_color='white').generate_from_frequencies(dict(keywords))
-    ax.imshow(wordcloud, interpolation='bilinear')
-    ax.axis("off")
-    st.pyplot(fig)
-
-# ---------- Viral Title Generator ----------
-st.divider()
-col4, col5 = st.columns(2)
-
-with col4:
-    st.subheader("✨ Viral Title Generator")
-    user_title = st.text_input("Enter your base title or idea:")
-    real_hooks = extract_real_hooks(titles)
-    if user_title and real_hooks:
-        suggestions = generate_viral_title(user_title, real_hooks)
-        st.markdown("**Trending Hook-based Titles:**")
-        for s in suggestions:
-            st.markdown(f"- {s}")
-
-with col5:
-    st.subheader("🚀 Viral Hashtag Booster")
-    if user_title:
-        boosted_tags = generate_viral_hashtags(keywords)
-        st.markdown("**Suggested Hashtags:**")
-        st.code(" ".join(boosted_tags))
-
-# ---------- Best Time to Post ----------
-st.divider()
-st.subheader("🕒 Best Time to Post Today")
-hottest_hour_today(videos)
-
-# ---------- Real-Time Posting Alert ----------
-real_time_post_alert()
-
-# ---------- Content Suggestion ----------
-st.subheader("🎯 Today's Suggested Content Type")
-content_type = suggest_content_type_real(keywords)
-st.success(f"Recommended: **{content_type}**")
+#
