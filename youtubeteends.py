@@ -118,6 +118,37 @@ def suggest_best_time(videos, mode='24h'):
         posting_time = f"{hour % 12 or 12}{'AM' if hour < 12 else 'PM'}"
         st.markdown(f"- **{posting_time}** (seen {count} uploads)")
 
+# ---------- Hottest Hour for Today ----------
+def hottest_hour_today(videos):
+    india_timezone = pytz.timezone('Asia/Kolkata')
+    upload_hours = []
+    now = datetime.now(india_timezone)
+
+    for v in videos:
+        upload_time_utc = v['snippet']['publishedAt']
+        upload_time = datetime.fromisoformat(upload_time_utc.replace('Z', '+00:00')).astimezone(india_timezone)
+
+        if (now - upload_time).total_seconds() <= 86400:  # Within last 24 hours
+            upload_hours.append(upload_time.hour)
+
+    if not upload_hours:
+        st.warning("No uploads found in the last 24 hours.")
+        return
+
+    hour_counts = Counter(upload_hours)
+    hottest_hour, count = hour_counts.most_common(1)[0]  # Get the hottest hour
+    hottest_time = f"{hottest_hour % 12 or 12}{'AM' if hottest_hour < 12 else 'PM'}"
+    
+    # Show hottest hour and the bar chart
+    st.markdown(f"### 🔥 Hottest Hour to Post Today: **{hottest_time}**")
+    
+    # Bar chart of trending hours
+    hour_data = pd.DataFrame(hour_counts.items(), columns=["Hour", "Count"]).sort_values(by="Hour")
+    st.bar_chart(hour_data.set_index("Hour"))
+    
+    # Show the trendiest hour more clearly
+    st.markdown(f"🚀 **{hottest_time}** is the time to target for maximum visibility!")
+
 # ---------- REAL-TIME POST ALERT SYSTEM ----------
 def real_time_post_alert():
     india_timezone = pytz.timezone('Asia/Kolkata')
@@ -225,12 +256,8 @@ with col5:
 
 # ---------- Best Time to Post ----------
 st.divider()
-st.subheader("🕒 Best Time to Post")
-mode = st.radio("Select Analysis Window:", ["24 Hours", "7 Days"], horizontal=True)
-if mode == "24 Hours":
-    suggest_best_time(videos, mode='24h')
-else:
-    suggest_best_time(videos, mode='7d')
+st.subheader("🕒 Best Time to Post Today")
+hottest_hour_today(videos)
 
 # ---------- Real-Time Posting Alert ----------
 real_time_post_alert()
